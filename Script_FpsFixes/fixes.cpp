@@ -84,14 +84,12 @@ unsigned int t3;
 
 extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 {
-
-
 	// ------------------------------------------------------------------------
 	// ProcessClimbStandard patch
 	// ------------------------------------------------------------------------
 
-	// Nop out frametime stuff
-	char nops[] =
+	// Remove divide call
+	char standardPatch[] =
 	{
 		0x8B, 0xC1,	// mov eax, ecx
 		0x59,		// pop ecx
@@ -100,15 +98,37 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 		0x90		// nop
 	};
 
-	MaskPatch(0x2018EF8B, nops, sizeof(nops), MASK);
+	MaskPatch(0x2018EF8B, standardPatch, sizeof(standardPatch), MASK);
 
 	// AddToCurrentVelocity hook
+	#define STANDARD_HOOK 0x2018EF94
 
-#define HOOK 0x2018EF94
+	auto standardHookAddr = &gCCharacterMovement_PS::AddToCurrentVelocity_Hook;
+	call standardHookCall = { 0xE8, (*(unsigned long*)&standardHookAddr) - STANDARD_HOOK - 5 };
+	WriteProcessMemory(GetCurrentProcess(), (void*)STANDARD_HOOK, &standardHookCall, 5, NULL);
 
-	auto hookAddr = &gCCharacterMovement_PS::AddToCurrentVelocity_Hook;
-	call hookCall = { 0xE8, (*(unsigned long*)&hookAddr) - HOOK - 5 };
-	WriteProcessMemory(GetCurrentProcess(), (void*)HOOK, &hookCall, 5, NULL);
+	// ------------------------------------------------------------------------
+	// ProcessClimbHigh patch
+	// ------------------------------------------------------------------------
+
+	// Remove divide call
+	char highPatch[] =
+	{
+		0x8B, 0xC1,	// mov eax, ecx
+		0x59,		// pop ecx
+		0x59,		// pop ecx
+		0x90,		// nop
+		0x90		// nop
+	};
+
+	MaskPatch(0x20193EBF, highPatch, sizeof(highPatch), MASK);
+
+	// AddToCurrentVelocity hook
+	#define HIGH_HOOK 0x20193EC8
+
+	auto highHookAddr = &gCCharacterMovement_PS::AddToCurrentVelocity_Hook;
+	call highHookCall = { 0xE8, (*(unsigned long*)&highHookAddr) - HIGH_HOOK - 5 };
+	WriteProcessMemory(GetCurrentProcess(), (void*)HIGH_HOOK, &highHookCall, 5, NULL);
 
 
 
