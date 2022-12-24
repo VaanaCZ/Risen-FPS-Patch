@@ -1,9 +1,19 @@
+// ------------------------------------------------------------------------
+// Risen - FPS fixes
+// 
+// Copyright (c) 2022 VaanaCZ
+// ------------------------------------------------------------------------
 
 #include <windows.h>
+#ifdef _DEBUG
 #include <string>
-#include <vector>
-#include <thread>
+#endif
 
+// ------------------------------------------------------------------------
+// Debugging stuff
+// ------------------------------------------------------------------------
+
+#ifdef _DEBUG
 HWND spyHandle;
 
 void SendMessageToSpy(std::string msg)
@@ -14,37 +24,11 @@ void SendMessageToSpy(std::string msg)
 
 	SendMessageA(spyHandle, WM_COPYDATA, (WPARAM)0, (LPARAM)&data);
 }
+#endif
 
-class bCVector
-{
-public:
-	float x, y, z;
-};
-
-#define CALL(addr)			\
- __asm { mov esp, ebp	}	\
- __asm { pop ebp		}	\
- __asm { mov eax, addr	}	\
- __asm { jmp eax		}
-
-class gCCharacterMovement_PS
-{
-public:
-
-	void		SetCurrentPosition(bCVector const& a0, bool a1, bool a2)	{ CALL(0x2004BA79); }
-	bCVector	GetCurrentPosition()										{ CALL(0x200557F9); }
-
-	__declspec(safebuffers) void AddToCurrentVelocity_Hook(bCVector const& a0, bool a1)
-	{
-		bCVector position = GetCurrentPosition();
-
-		position.x += a0.x;
-		position.y += a0.y;
-		position.z += a0.z;
-
-		SetCurrentPosition(position, true, true);
-	}
-};
+// ------------------------------------------------------------------------
+// Patching utils
+// ------------------------------------------------------------------------
 
 #pragma pack(push, 1)
 struct callPtr
@@ -74,16 +58,48 @@ void MaskPatch(DWORD address, char* bytes, size_t length, char mask)
 	}
 }
 
+#define CALL(addr)			\
+ __asm { mov esp, ebp	}	\
+ __asm { pop ebp		}	\
+ __asm { mov eax, addr	}	\
+ __asm { jmp eax		}
 
+// ------------------------------------------------------------------------
+// Patch implementation
+// ------------------------------------------------------------------------
 
-//unsigned long funcAddr = (unsigned long)&GetFrameTimeInSeconds;
+class bCVector
+{
+public:
+	float x, y, z;
+};
 
-unsigned int t1;
-unsigned int t2;
-unsigned int t3;
+class gCCharacterMovement_PS
+{
+public:
+
+	void		SetCurrentPosition(bCVector const& a0, bool a1, bool a2)	{ CALL(0x2004BA79); }
+	bCVector	GetCurrentPosition()										{ CALL(0x200557F9); }
+
+	__declspec(safebuffers) void AddToCurrentVelocity_Hook(bCVector const& a0, bool a1)
+	{
+		bCVector position = GetCurrentPosition();
+
+		position.x += a0.x;
+		position.y += a0.y;
+		position.z += a0.z;
+
+		SetCurrentPosition(position, true, true);
+	}
+};
 
 extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 {
+#ifdef _DEBUG
+	spyHandle = FindWindowA(0, "[zSpy]");
+	SendMessageToSpy("FPS Fixes loaded");
+#endif
+
 	// ------------------------------------------------------------------------
 	// ProcessClimbStandard patch
 	// ------------------------------------------------------------------------
@@ -129,15 +145,6 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	auto highHookAddr = &gCCharacterMovement_PS::AddToCurrentVelocity_Hook;
 	call highHookCall = { 0xE8, (*(unsigned long*)&highHookAddr) - HIGH_HOOK - 5 };
 	WriteProcessMemory(GetCurrentProcess(), (void*)HIGH_HOOK, &highHookCall, 5, NULL);
-
-
-
-	spyHandle = FindWindowA(0, "[zSpy]");
-	
-
-	SendMessageToSpy("test");
-
-
 
 	return nullptr;
 }
