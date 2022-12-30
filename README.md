@@ -7,7 +7,9 @@ Special thanks to Auronen for helping to diagnose and fix these issues.
 
 ## Installation
 
-Download the DLL file and extract to the scripts folder of your game directory
+1. Download the zip file.
+2. Extract the included DLL file into the `scripts` folder in your game directory (`Risen\bin\scripts`).
+3. Launch the game and enjoy.
 
 ## Techical explanation
 
