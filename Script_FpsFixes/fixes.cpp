@@ -71,25 +71,43 @@ void MaskPatch(DWORD address, char* bytes, size_t length, char mask)
 class bCVector
 {
 public:
-	float x, y, z;
+	float x, y, z = 0.0f;
+};
+
+class eCTimer
+{
+public:
+
+	float				GetFrameTimeInSeconds()										{ CALL(0x30039FC2); }
+	static eCTimer*		GetInstance()												{ CALL(0x30039478); }
+
 };
 
 class gCCharacterMovement_PS
 {
 public:
 
-	void		SetCurrentPosition(bCVector const& a0, bool a1, bool a2)	{ CALL(0x2004BA79); }
-	bCVector	GetCurrentPosition()										{ CALL(0x200557F9); }
+	void				SetCurrentPosition(bCVector const& a0, bool a1, bool a2)	{ CALL(0x2004BA79); }
+	bCVector			GetCurrentPosition()										{ CALL(0x200557F9); }
+	void				AddToCurrentVelocity(bCVector const& a0, bool a1)			{ CALL(0x2000673F); }
 
 	__declspec(safebuffers) void AddToCurrentVelocity_Hook(bCVector const& a0, bool a1)
 	{
+		// Y coordinate is handled separately
 		bCVector position = GetCurrentPosition();
-
-		position.x += a0.x;
 		position.y += a0.y;
-		position.z += a0.z;
 
 		SetCurrentPosition(position, true, true);
+
+		// X and Z coordinates are handled like normal
+		eCTimer* timer = eCTimer::GetInstance();
+		float frametime = timer->GetFrameTimeInSeconds();
+
+		bCVector velocity;
+		velocity.x = a0.x / frametime;
+		velocity.z = a0.z / frametime;
+
+		AddToCurrentVelocity(velocity, a1);
 	}
 };
 
