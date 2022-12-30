@@ -23,9 +23,7 @@ Sadly, on high FPS this mechanism breaks and the game overcorrects by a small am
 
 The "fix" bypasses the physics system entirely and instead sets the target position of the player directly.
 
-[![Risen - Climbing FPS fix]
-(https://img.youtube.com/vi/1tOcu34vBKM/maxresdefault.jpg)]
-(https://www.youtube.com/watch?v=1tOcu34vBKM)
+[![Risen - Climbing FPS fix](https://img.youtube.com/vi/1tOcu34vBKM/maxresdefault.jpg)](https://www.youtube.com/watch?v=1tOcu34vBKM)
 
 ### Airwalk patch
 
@@ -35,6 +33,4 @@ When the game is running at high FPS (100+), the difference in position between 
 
 The patch fixes this by altering the check according to the current fps.
 
-[![Risen - Airwalk FPS fix]
-(https://img.youtube.com/vi/Hl06FP98I6I/maxresdefault.jpg)]
-(https://www.youtube.com/watch?v=Hl06FP98I6I)
+[![Risen - Airwalk FPS fix](https://img.youtube.com/vi/Hl06FP98I6I/maxresdefault.jpg)](https://www.youtube.com/watch?v=Hl06FP98I6I)
