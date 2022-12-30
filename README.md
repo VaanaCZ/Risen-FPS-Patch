@@ -23,6 +23,10 @@ Sadly, on high FPS this mechanism breaks and the game overcorrects by a small am
 
 The "fix" bypasses the physics system entirely and instead sets the target position of the player directly.
 
+[![Risen - Climbing FPS fix]
+(https://img.youtube.com/vi/1tOcu34vBKM/maxresdefault.jpg)]
+(https://www.youtube.com/watch?v=1tOcu34vBKM)
+
 ### Airwalk patch
 
 While in freefall, the game performs checks to see if the player has landed on the ground so that it can return to a walking state and give back control. This check works by comparing the player's current Y coordinate to the one from the previous frame and seeing if the difference between them is below a certain threshold (less than 5cm). 
@@ -30,3 +34,7 @@ While in freefall, the game performs checks to see if the player has landed on t
 When the game is running at high FPS (100+), the difference in position between individual frames becomes so small, that the game falsely detects the player has landed.
 
 The patch fixes this by altering the check according to the current fps.
+
+[![Risen - Airwalk FPS fix]
+(https://img.youtube.com/vi/Hl06FP98I6I/maxresdefault.jpg)]
+(https://www.youtube.com/watch?v=Hl06FP98I6I)
