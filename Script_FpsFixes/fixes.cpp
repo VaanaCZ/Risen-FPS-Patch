@@ -157,23 +157,20 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 #endif
 
 	// ------------------------------------------------------------------------
-	// Climbing patch
+	// *** Climbing patch ***
 	// 
 	// Whenever the player initiates a climb by standing next to a ledge and
-	// pressing space, the player controller switches to a "climbing" state.
-	// While the player is in this state, the game calculates the target
-	// position by grudually interpolating between the player's position and
-	// the ledge.
-	// 
-	// Once this is done, the game then "corrects" the player position to the
-	// target position by setting the player's velocity and letting the
-	// physics system do the rest of the work.
-	// 
-	// Sadly, on high FPS this mechanism breaks and the game overcorrects by
-	// a small amount each frame, which causes the player to jump up and down
-	// super fast, eventually sending him either into the stratosphere or the
-	// depths of the earth.
-	// 
+	// pressing space, the game calculates the target position by gradually
+	// interpolating between the player's position and the ledge. After doing
+	// so, the game then "corrects" the player position to the target position
+	// by setting the player's velocity and letting the physics system do the
+	// rest of the work.
+	//
+	// Sadly, on high FPS this mechanism breaksand the game overcorrects by a
+	// small amount each frame, which causes the player to jump upand down
+	// super fast, eventually sending him either into the stratosphere or to
+	// the depths of the earth.
+	//
 	// The "fix" bypasses the physics system entirely and instead sets the
 	// target position of the player directly.
 	// ------------------------------------------------------------------------
@@ -219,7 +216,19 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	HookCall(CLIMB_HIGH_HOOK, *(DWORD*)&hookAddToCurrentVelocity);
 
 	// ------------------------------------------------------------------------
-	// Airwalk patch
+	// *** Airwalk patch ***
+	// 
+	// While in freefall, the game performs checks to see if the player has
+	// landed on the ground so that it can return to a walking state and give
+	// back control. This check works by comparing the player's current Y
+	// coordinate to the one from the previous frame and seeing if the
+	// difference between them is below a certain threshold (less than 5cm). 
+	//
+	// When the game is running at high FPS (100+), the difference in position
+	// between individual frames becomes so small, that the game falsely
+	// detects the player has landed.
+	//
+	// The patch fixes this by altering the check according to the current fps.
 	// ------------------------------------------------------------------------
 	
 	auto hookFabsf = &fabsf_Hook;
