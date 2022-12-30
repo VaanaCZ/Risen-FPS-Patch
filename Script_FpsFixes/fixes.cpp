@@ -139,7 +139,7 @@ public:
 
 #define FRAMETIME_30 0.0333333333f
 
-float __stdcall fabsf_Hook(float val)
+__declspec(safebuffers) float __stdcall fabsf_Hook(float val)
 {
 	eCTimer* timer = eCTimer::GetInstance();
 	float frameTime = timer->GetFrameTimeInSeconds();
@@ -158,6 +158,24 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 
 	// ------------------------------------------------------------------------
 	// Climbing patch
+	// 
+	// Whenever the player initiates a climb by standing next to a ledge and
+	// pressing space, the player controller switches to a "climbing" state.
+	// While the player is in this state, the game calculates the target
+	// position by grudually interpolating between the player's position and
+	// the ledge.
+	// 
+	// Once this is done, the game then "corrects" the player position to the
+	// target position by setting the player's velocity and letting the
+	// physics system do the rest of the work.
+	// 
+	// Sadly, on high FPS this mechanism breaks and the game overcorrects by
+	// a small amount each frame, which causes the player to jump up and down
+	// super fast, eventually sending him either into the stratosphere or the
+	// depths of the earth.
+	// 
+	// The "fix" bypasses the physics system entirely and instead sets the
+	// target position of the player directly.
 	// ------------------------------------------------------------------------
 
 	auto hookAddToCurrentVelocity = &gCCharacterMovement_PS::AddToCurrentVelocity_Hook;
