@@ -44,15 +44,15 @@ void SendMessageToSpy(std::string msg)
 #pragma pack(push, 1)
 struct callPtr
 {
-	unsigned char opcode;  // FF
-	unsigned char reg;     // 15
-	unsigned long address; // 005E413C
+	BYTE	opcode;  // FF
+	BYTE	reg;     // 15
+	DWORD	address;
 };
 
 struct call
 {
-	unsigned char opcode;  // E8
-	unsigned long address; // 005E413C
+	BYTE	opcode;  // E8
+	DWORD	address;
 };
 #pragma pack(pop)
 
@@ -61,7 +61,7 @@ void HookCallPtr(DWORD addr, DWORD func)
 	DWORD* a = new DWORD;
 	*a = func;
 
-	callPtr c = { 0xFF, 0x15, ((unsigned long)a) };
+	callPtr c = { 0xFF, 0x15, ((DWORD)a) };
 	WriteProcessMemory(GetCurrentProcess(), (void*)addr, &c, sizeof(callPtr), NULL);
 }
 
@@ -73,7 +73,7 @@ void HookCall(DWORD addr, DWORD func)
 
 #define MASK 0xFF
 
-void MaskPatch(DWORD address, char* bytes, size_t length, char mask)
+void MaskPatch(DWORD address, BYTE* bytes, size_t length, char mask)
 {
 	for (size_t i = 0; i < length; i++)
 	{
@@ -167,7 +167,7 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	*/
 
 	// Remove divide call
-	char climbStandardNop[] =
+	BYTE climbStandardNop[] =
 	{
 		0x8B, 0xC1,	// mov eax, ecx
 		0x59,		// pop ecx
@@ -186,7 +186,7 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	*/
 
 	// Remove divide call
-	char climbHighNop[] =
+	BYTE climbHighNop[] =
 	{
 		0x8B, 0xC1,	// mov eax, ecx
 		0x59,		// pop ecx
