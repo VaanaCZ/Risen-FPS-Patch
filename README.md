@@ -2,6 +2,12 @@
 
 This repo contains fixes for some of the commonly encountered FPS-related bugs in the 2009 video game Risen (Available on [GOG.com](https://www.gog.com/en/game/risen) or [Steam](https://store.steampowered.com/app/40300/Risen/?l=czech)).
 
+Special thanks to Auronen for helping to diagnose and fix these issues.
+
+## Installation
+
+Download the DLL file and extract to the scripts folder of your game directory
+
 ## Techical explanation
 
 This section includes technical explanations for how each of the individual fixes function.
@@ -18,3 +24,4 @@ The "fix" bypasses the physics system entirely and instead sets the target posit
 
 ### Airwalk patch
 
+Not yet
