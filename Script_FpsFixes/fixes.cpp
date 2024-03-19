@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------
 // Risen - FPS fixes
 // 
-// Copyright (c) 2022 VaanaCZ and Auronen
+// Copyright (c) 2022-2024 VaanaCZ and Auronen
 // ------------------------------------------------------------------------
 
 #include <windows.h>
@@ -19,6 +19,7 @@
 #define CLIMB_HIGH_NOP		0x20193EBF
 #define CLIMB_HIGH_HOOK		0x20193EC8
 #define FALL_HOOK			0x20194BC4
+#define THUNDER_HOOK		0x303A8263
 
 // ------------------------------------------------------------------------
 // Debugging stuff
@@ -90,6 +91,13 @@ void MaskPatch(DWORD address, BYTE* bytes, size_t length, char mask)
  __asm { mov eax, addr	}	\
  __asm { jmp eax		}
 
+#define CALLPTR(addr)		\
+ __asm { mov esp, ebp	}	\
+ __asm { pop ebp		}	\
+ __asm { mov eax, addr	}	\
+ __asm { mov eax, [eax]	}	\
+ __asm { jmp eax		}
+
 // ------------------------------------------------------------------------
 // Patch implementation
 // ------------------------------------------------------------------------
@@ -148,6 +156,36 @@ __declspec(safebuffers) float __stdcall fabsf_Hook(float val)
 
 	return fabsf(val) * multiplier;
 }
+
+class bCMersenneTwister
+{
+public:
+
+	float				Rand(float a0)												{ CALLPTR(0x30AA6914); }
+
+	__declspec(safebuffers) float Rand_Hook(float a0)
+	{
+		eCTimer* timer = eCTimer::GetInstance();
+		float frameTime = timer->GetFrameTimeInSeconds();
+
+		static float thunderCooldown = FRAMETIME_30;
+
+		if (thunderCooldown <= 1.19209290E-07F)
+		{
+			thunderCooldown = FRAMETIME_30;
+
+			// 0.9999999776 SOUND
+			// 0.7499999832 VISUAL
+
+			return Rand(a0);
+		}
+		else
+		{
+			thunderCooldown -= frameTime;
+			return a0;
+		}
+	}
+};
 
 extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 {
@@ -234,6 +272,21 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	auto hookFabsf = &fabsf_Hook;
 
 	HookCallPtr(FALL_HOOK, *(DWORD*)&hookFabsf);
+
+	// ------------------------------------------------------------------------
+	// *** Thunder patch ***
+	// 
+	// Every frame there is check which determines whether a new thunder effect
+	// should be generated. If this check passes (1% chance for a sound effect
+	// and 0.75% for a visual effect), then a new thunder effect is created.
+	// 
+	// The patch simply limits this check to 1/30 of an FPS. So that the
+	// thunderstorm effects are generated at the correct frequency.
+	// ------------------------------------------------------------------------
+
+	auto hookRand = &bCMersenneTwister::Rand_Hook;
+
+	HookCallPtr(THUNDER_HOOK, *(DWORD*)&hookRand);
 
 	return nullptr;
 }

@@ -7,6 +7,8 @@ Special thanks to Auronen for helping to diagnose and fix these issues.
 
 ## Installation
 
+**Caution: This patch is intended for the original version of the game. It will not work on the updated version from 2023!**
+
 1. Download the zip file.
 2. Extract the included DLL file into the `scripts` folder in your game directory (`Risen\bin\scripts`).
 3. Launch the game and enjoy.
@@ -34,3 +36,9 @@ When the game is running at high FPS (100+), the difference in position between 
 The patch fixes this by altering the check according to the current fps.
 
 [![Risen - Airwalk FPS fix](https://img.youtube.com/vi/Hl06FP98I6I/maxresdefault.jpg)](https://www.youtube.com/watch?v=Hl06FP98I6I)
+
+### Thunder patch
+
+Every frame there is check which determines whether a new thunder effect should be generated. If this check passes (1% chance for a sound effect and 0.75% for a visual effect), then a new thunder effect is created.
+
+The patch simply limits this check to 1/30 of an FPS. So that the thunderstorm effects are generated at the correct frequency.
