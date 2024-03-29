@@ -42,6 +42,8 @@ void SendMessageToSpy(std::string msg)
 // Patching utils
 // ------------------------------------------------------------------------
 
+extern "C" int _fltused = 0;
+
 #pragma pack(push, 1)
 struct callPtr
 {
@@ -57,30 +59,34 @@ struct call
 };
 #pragma pack(pop)
 
-void HookCallPtr(DWORD addr, DWORD func)
+DWORD newBuffer[64]; // workaround for new operator
+DWORD* newPtr = newBuffer;
+
+BOOL HookCallPtr(DWORD addr, DWORD func)
 {
-	DWORD* a = new DWORD;
+	// DWORD* a = new DWORD;
+	DWORD* a = newPtr++;
 	*a = func;
 
 	callPtr c = { 0xFF, 0x15, ((DWORD)a) };
-	WriteProcessMemory(GetCurrentProcess(), (void*)addr, &c, sizeof(callPtr), NULL);
+	return WriteProcessMemory(GetCurrentProcess(), (void*)addr, &c, sizeof(callPtr), NULL);
 }
 
-void HookCall(DWORD addr, DWORD func)
+BOOL HookCall(DWORD addr, DWORD func)
 {
 	call c = { 0xE8, func - addr - sizeof(call) };
-	WriteProcessMemory(GetCurrentProcess(), (void*)addr, &c, sizeof(call), NULL);
+	return WriteProcessMemory(GetCurrentProcess(), (void*)addr, &c, sizeof(call), NULL);
 }
 
 #define MASK 0xFF
 
-void MaskPatch(DWORD address, BYTE* bytes, size_t length, char mask)
+BOOL MaskPatch(DWORD address, BYTE* bytes, size_t length, char mask)
 {
 	for (size_t i = 0; i < length; i++)
 	{
 		if (bytes[i] != mask)
 		{
-			WriteProcessMemory(GetCurrentProcess(), (DWORD*)(address + i), &bytes[i], 1, NULL);
+			return WriteProcessMemory(GetCurrentProcess(), (DWORD*)(address + i), &bytes[i], 1, NULL);
 		}
 	}
 }
@@ -268,13 +274,13 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	//
 	// The patch fixes this by altering the check according to the current fps.
 	// ------------------------------------------------------------------------
-	
+
 	auto hookFabsf = &fabsf_Hook;
 
 	HookCallPtr(FALL_HOOK, *(DWORD*)&hookFabsf);
 
 	// ------------------------------------------------------------------------
-	// *** Thunder patch ***
+	// *** Thunderstorm patch ***
 	// 
 	// Every frame there is check which determines whether a new thunder effect
 	// should be generated. If this check passes (1% chance for a sound effect
