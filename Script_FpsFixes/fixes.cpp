@@ -6,6 +6,7 @@
 
 #include <windows.h>
 #include <cmath>
+#include <cassert>
 #ifdef ZSPY
 #include <string>
 #endif
@@ -59,16 +60,9 @@ struct call
 };
 #pragma pack(pop)
 
-DWORD newBuffer[64]; // workaround for new operator
-DWORD* newPtr = newBuffer;
-
-BOOL HookCallPtr(DWORD addr, DWORD func)
+BOOL HookCallPtr(DWORD addr, LPDWORD func)
 {
-	// DWORD* a = new DWORD;
-	DWORD* a = newPtr++;
-	*a = func;
-
-	callPtr c = { 0xFF, 0x15, ((DWORD)a) };
+	callPtr c = { 0xFF, 0x15, ((DWORD)func) };
 	return WriteProcessMemory(GetCurrentProcess(), (void*)addr, &c, sizeof(callPtr), NULL);
 }
 
@@ -82,13 +76,15 @@ BOOL HookCall(DWORD addr, DWORD func)
 
 BOOL MaskPatch(DWORD address, BYTE* bytes, size_t length, char mask)
 {
+	BOOL r = TRUE;
 	for (size_t i = 0; i < length; i++)
 	{
 		if (bytes[i] != mask)
 		{
-			return WriteProcessMemory(GetCurrentProcess(), (DWORD*)(address + i), &bytes[i], 1, NULL);
+			r &= WriteProcessMemory(GetCurrentProcess(), (DWORD*)(address + i), &bytes[i], 1, NULL);
 		}
 	}
+	return r;
 }
 
 #define CALL(addr)			\
@@ -97,12 +93,11 @@ BOOL MaskPatch(DWORD address, BYTE* bytes, size_t length, char mask)
  __asm { mov eax, addr	}	\
  __asm { jmp eax		}
 
-#define CALLPTR(addr)		\
- __asm { mov esp, ebp	}	\
- __asm { pop ebp		}	\
- __asm { mov eax, addr	}	\
- __asm { mov eax, [eax]	}	\
- __asm { jmp eax		}
+#define CALLPTR(addr)				\
+ __asm { mov esp, ebp			}	\
+ __asm { pop ebp				}	\
+ __asm { mov eax, addr			}	\
+ __asm { jmp dword ptr [eax]	}
 
 // ------------------------------------------------------------------------
 // Patch implementation
@@ -111,7 +106,7 @@ BOOL MaskPatch(DWORD address, BYTE* bytes, size_t length, char mask)
 class bCVector
 {
 public:
-	float x, y, z = 0.0f;
+	float x, y, z;
 };
 
 class eCTimer
@@ -141,10 +136,12 @@ public:
 
 		// X and Z coordinates are handled like normal
 		eCTimer* timer = eCTimer::GetInstance();
+		assert(timer);
 		float frametime = timer->GetFrameTimeInSeconds();
 
 		bCVector velocity;
 		velocity.x = a0.x / frametime;
+		velocity.y = 0.0f;
 		velocity.z = a0.z / frametime;
 
 		AddToCurrentVelocity(velocity, a1);
@@ -156,6 +153,7 @@ public:
 __declspec(safebuffers) float __stdcall fabsf_Hook(float val)
 {
 	eCTimer* timer = eCTimer::GetInstance();
+	assert(timer);
 	float frameTime = timer->GetFrameTimeInSeconds();
 	
 	float multiplier = FRAMETIME_30 / frameTime;
@@ -172,24 +170,15 @@ public:
 	__declspec(safebuffers) float Rand_Hook(float a0)
 	{
 		eCTimer* timer = eCTimer::GetInstance();
+		assert(timer);
 		float frameTime = timer->GetFrameTimeInSeconds();
 
-		static float thunderCooldown = FRAMETIME_30;
+		float multiplier = FRAMETIME_30 / frameTime;
 
-		if (thunderCooldown <= 1.19209290E-07F)
-		{
-			thunderCooldown = FRAMETIME_30;
+		// 0.9999999776 SOUND
+		// 0.7499999832 VISUAL
 
-			// 0.9999999776 SOUND
-			// 0.7499999832 VISUAL
-
-			return Rand(a0);
-		}
-		else
-		{
-			thunderCooldown -= frameTime;
-			return a0;
-		}
+		return Rand(a0) * multiplier;
 	}
 };
 
@@ -210,7 +199,7 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	// by setting the player's velocity and letting the physics system do the
 	// rest of the work.
 	//
-	// Sadly, on high FPS this mechanism breaksand the game overcorrects by a
+	// Sadly, on high FPS this mechanism breaks and the game overcorrects by a
 	// small amount each frame, which causes the player to jump upand down
 	// super fast, eventually sending him either into the stratosphere or to
 	// the depths of the earth.
@@ -275,9 +264,9 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	// The patch fixes this by altering the check according to the current fps.
 	// ------------------------------------------------------------------------
 
-	auto hookFabsf = &fabsf_Hook;
+	static auto hookFabsf = &fabsf_Hook;
 
-	HookCallPtr(FALL_HOOK, *(DWORD*)&hookFabsf);
+	HookCallPtr(FALL_HOOK, (DWORD*)&hookFabsf);
 
 	// ------------------------------------------------------------------------
 	// *** Thunderstorm patch ***
@@ -290,9 +279,9 @@ extern "C" __declspec(dllexport) void* __stdcall ScriptInit()
 	// thunderstorm effects are generated at the correct frequency.
 	// ------------------------------------------------------------------------
 
-	auto hookRand = &bCMersenneTwister::Rand_Hook;
+	static auto hookRand = &bCMersenneTwister::Rand_Hook;
 
-	HookCallPtr(THUNDER_HOOK, *(DWORD*)&hookRand);
+	HookCallPtr(THUNDER_HOOK, (DWORD*)&hookRand);
 
 	return nullptr;
 }
